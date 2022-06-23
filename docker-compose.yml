@@ -1,0 +1,48 @@
+version: '3.0'
+
+services:
+  app:
+    hostname: nodeapp
+    working_dir: /home/node/app
+    build:
+      context: .  
+    volumes:
+      - .:/home/node/app
+    entrypoint: 'dockerize --wait tcp://db:3306 --timeout 30s bash -c "yarn && yarn dev"'
+    ports:
+      - "3000:3000"
+    networks:
+      - application
+    depends_on:
+      - db
+  
+  db:
+    image: mysql:latest
+    command: --default-authentication-plugin=mysql_native_password
+    #restart: always
+    tty: true
+    volumes:
+      - ./db/mysql-dump:/docker-entrypoint-initdb.d
+    networks:
+      - application
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+  
+  nginx:
+    image: nginx:latest
+    hostname: nginx
+    container_name: nginx
+    ports:
+      - "80:80"
+    tty: true
+    volumes:
+      - ./nginx:/etc/nginx/
+    
+    depends_on:
+      - app
+    networks:
+      - application
+
+networks:
+  application:
+    driver: bridge
